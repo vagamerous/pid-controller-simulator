@@ -1,0 +1,75 @@
+"""
+Simulador de Controlador PID para Sistemas de 1ª Ordem
+Autor: [Seu Nome]
+Repositório: https://github.com/[seu-usuario]/pid-controller-simulator
+"""
+
+import numpy as np
+import matplotlib.pyplot as plt
+from argparse import ArgumentParser
+
+try:
+    import control as ctrl
+except ImportError:
+    raise ImportError("A biblioteca 'control' não está instalada. Instale com: pip install control")
+
+def simulate_pid_response(Kp: float, Ki: float, Kd: float, 
+                         system_gain: float = 1.0, 
+                         time_constant: float = 10.0, 
+                         sim_time: float = 50.0) -> tuple:
+    """
+    Simula a resposta de um sistema de 1ª ordem com controle PID
+    
+    Parâmetros:
+    Kp (float): Ganho Proporcional
+    Ki (float): Ganho Integral
+    Kd (float): Ganho Derivativo
+    system_gain (float): Ganho do sistema
+    time_constant (float): Constante de tempo do sistema
+    sim_time (float): Tempo total de simulação
+    
+    Retorna:
+    tuple: (tempo, resposta)
+    """
+    # Sistema de 1ª ordem
+    G = ctrl.tf([system_gain], [time_constant, 1])
+    
+    # Controlador PID
+    pid_controller = ctrl.TransferFunction([Kd, Kp, Ki], [1, 0])
+    
+    # Sistema em malha fechada
+    closed_loop = ctrl.feedback(pid_controller * G)
+    
+    # Tempo de simulação
+    t = np.linspace(0, sim_time, 1000)
+    
+    # Resposta ao degrau
+    t, y = ctrl.step_response(closed_loop, T=t)
+    
+    return t, y
+
+def plot_response(t: np.ndarray, y: np.ndarray, Kp: float, Ki: float, Kd: float) -> None:
+    """Plota a resposta do sistema com anotações dos parâmetros PID"""
+    plt.figure(figsize=(10, 6))
+    plt.plot(t, y, label='Resposta do Sistema')
+    plt.axhline(1, color='r', linestyle='--', label='Setpoint')
+    
+    plt.title(f'Resposta do Sistema com Controle PID\nKp={Kp}, Ki={Ki}, Kd={Kd}')
+    plt.xlabel('Tempo (s)')
+    plt.ylabel('Temperatura (°C)')
+    plt.grid(True)
+    plt.legend()
+    
+    # Salvar figura
+    plt.savefig('pid_response.png', dpi=300)
+    plt.show()
+
+if __name__ == "__main__":
+    parser = ArgumentParser(description='Simulador de Controlador PID')
+    parser.add_argument('--Kp', type=float, default=2.0, help='Ganho Proporcional')
+    parser.add_argument('--Ki', type=float, default=0.1, help='Ganho Integral')
+    parser.add_argument('--Kd', type=float, default=1.0, help='Ganho Derivativo')
+    args = parser.parse_args()
+
+    t, y = simulate_pid_response(args.Kp, args.Ki, args.Kd)
+    plot_response(t, y, args.Kp, args.Ki, args.Kd)
